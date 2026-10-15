@@ -25,6 +25,7 @@ from word_document_server.tools import (
     comment_tools,
     track_changes_tools,
     comment_management_tools,
+    header_footer_tools,
 )
 from word_document_server.tools.content_tools import replace_paragraph_block_below_header_tool
 from word_document_server.tools.content_tools import replace_block_between_manual_anchors_tool
@@ -776,6 +777,49 @@ def register_tools():
     def convert_to_pdf(filename: str, output_filename: str = None):
         """Convert a Word document to PDF format."""
         return extended_document_tools.convert_to_pdf(filename, output_filename)
+
+    @mcp.tool(
+        annotations=ToolAnnotations(
+            title="Convert to Image",
+            destructiveHint=True,
+        ),
+    )
+    def convert_to_image(filename: str, output_filename: str = None, page: int = 0, dpi: int = 150):
+        """Convert a Word document to a PNG image (renders page `page` at `dpi` DPI) for visual verification.
+        The response includes the image path; if the calling model does not support images, report to the
+        user that manual verification is required."""
+        return extended_document_tools.convert_to_image(filename, output_filename, page, dpi)
+
+    @mcp.tool(
+        annotations=ToolAnnotations(
+            title="Add Page Header",
+        ),
+    )
+    def add_header(filename: str, text: str = "", alignment: str = "left",
+                   different_first_page: bool = False, first_page_text: str = None):
+        """Set the page header (encabezado) of the document's first section. Optionally distinct first page."""
+        return header_footer_tools.add_header(filename, text, alignment, different_first_page, first_page_text)
+
+    @mcp.tool(
+        annotations=ToolAnnotations(
+            title="Add Page Footer",
+        ),
+    )
+    def add_footer(filename: str, text: str = "", alignment: str = "center",
+                   different_first_page: bool = False, first_page_text: str = None,
+                   include_page_number: bool = False):
+        """Set the page footer (pie de página) of the document's first section. Optionally appends a page number."""
+        return header_footer_tools.add_footer(filename, text, alignment, different_first_page, first_page_text, include_page_number)
+
+    @mcp.tool(
+        annotations=ToolAnnotations(
+            title="Get Header Footer",
+            readOnlyHint=True,
+        ),
+    )
+    def get_header_footer(filename: str):
+        """Read the header and footer text of every section (read-only)."""
+        return header_footer_tools.get_header_footer(filename)
 
     @mcp.tool(
         annotations=ToolAnnotations(

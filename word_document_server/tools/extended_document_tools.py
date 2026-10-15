@@ -226,3 +226,77 @@ async def convert_to_pdf(filename: str, output_filename: Optional[str] = None) -
             
     except Exception as e:
         return f"Failed to convert document to PDF: {str(e)}"
+
+
+async def convert_to_image(filename: str, output_filename: Optional[str] = None,
+                           page: int = 0, dpi: int = 150) -> str:
+    """Convert a Word document to a PNG image (for visual verification).
+
+    Internally converts DOCX -> PDF (Microsoft Word via docx2pdf on Windows) and
+    then renders the requested page to PNG using PyMuPDF (fitz).
+
+    Args:
+        filename: Path to the Word document.
+        output_filename: Optional PNG path. Defaults to <basename>_p<page>.png.
+        page: 0-based page number to render (default 0).
+        dpi: Render resolution in DPI (default 150).
+    """
+    filename = ensure_docx_extension(filename)
+    if not os.path.exists(filename):
+        return json.dumps({"error": f"Document {filename} does not exist"})
+
+    base_name, _ = os.path.splitext(filename)
+    if not output_filename:
+        output_filename = f"{base_name}_p{page}.png"
+    elif not output_filename.lower().endswith(".png"):
+        output_filename = f"{output_filename}.png"
+    if not os.path.isabs(output_filename):
+        output_filename = os.path.abspath(output_filename)
+    os.makedirs(os.path.dirname(output_filename) or ".", exist_ok=True)
+
+    pdf_path = f"{base_name}.pdf"
+
+    try:
+        # 1) DOCX -> PDF
+        if platform.system() == "Windows":
+            from docx2pdf import convert as docx2pdf_convert
+            docx2pdf_convert(filename, pdf_path)
+        else:
+            # LibreOffice fallback
+            cmd = ["soffice", "--headless", "--convert-to", "pdf",
+                   "--outdir", os.path.dirname(pdf_path) or ".", filename]
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=120, check=False)
+            if result.returncode != 0 or not os.path.exists(pdf_path):
+                return json.dumps({"error": f"PDF conversion failed: {result.stderr.strip()}"})
+
+        if not os.path.exists(pdf_path) or os.path.getsize(pdf_path) <= 0:
+            return json.dumps({"error": f"PDF conversion produced no file: {pdf_path}"})
+
+        # 2) PDF -> PNG
+        try:
+            import pymupdf as fitz  # PyMuPDF (new API name; `fitz` alias deprecated)
+        except ImportError:
+            return json.dumps({
+                "error": "PyMuPDF (fitz) is not installed; cannot render PNG. "
+                         "Install it (uv add pymupdf) or rely on the PDF at " + pdf_path,
+                "pdf": pdf_path,
+            })
+
+        with fitz.open(pdf_path) as pdf:
+            if page < 0 or page >= pdf.page_count:
+                page = max(0, min(page, pdf.page_count - 1)) if pdf.page_count else 0
+            pix = pdf[page].get_pixmap(dpi=dpi)
+            pix.save(output_filename)
+
+        return json.dumps({
+            "ok": True,
+            "image": output_filename,
+            "pdf": pdf_path,
+            "page": page,
+            "dpi": dpi,
+            "note": ("Render PNG generado para verificacion visual. "
+                     "Si el modelo que ejecuta esta herramienta NO soporta imagenes, "
+                     "indica al usuario que se requiere verificacion manual del resultado."),
+        })
+    except Exception as e:
+        return json.dumps({"error": f"Failed to convert document to image: {str(e)}"})

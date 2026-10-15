@@ -54,3 +54,8 @@ from word_document_server.tools.track_changes_tools import (
 from word_document_server.tools.comment_management_tools import (
     add_comment, reply_to_comment, resolve_comment, delete_comment,
 )
+
+# Header/footer (page) tools
+from word_document_server.tools.header_footer_tools import (
+    add_header, add_footer, get_header_footer,
+)
