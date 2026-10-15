@@ -58,4 +58,5 @@ from word_document_server.tools.comment_management_tools import (
 # Header/footer (page) tools
 from word_document_server.tools.header_footer_tools import (
     add_header, add_footer, get_header_footer,
+    get_textboxes, set_textbox_text, replace_in_header_footer,
 )

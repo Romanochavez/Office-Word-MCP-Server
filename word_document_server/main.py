@@ -823,6 +823,37 @@ def register_tools():
 
     @mcp.tool(
         annotations=ToolAnnotations(
+            title="Replace In Header Footer",
+            destructiveHint=True,
+        ),
+    )
+    def replace_in_header_footer(filename: str, find_text: str, replace_text: str,
+                                 story: str = "both", occurrence: int = None):
+        """Find and replace text in headers/footers (including table cells and text boxes), cross-run aware."""
+        return header_footer_tools.replace_in_header_footer(filename, find_text, replace_text, story, occurrence)
+
+    @mcp.tool(
+        annotations=ToolAnnotations(
+            title="Get Text Boxes",
+            readOnlyHint=True,
+        ),
+    )
+    def get_textboxes(filename: str):
+        """List all text boxes (body + headers + footers) with a stable index. Read-only."""
+        return header_footer_tools.get_textboxes(filename)
+
+    @mcp.tool(
+        annotations=ToolAnnotations(
+            title="Set Text Box Text",
+            destructiveHint=True,
+        ),
+    )
+    def set_textbox_text(filename: str, textbox_index: int, new_text: str):
+        """Replace the whole text of a specific text box (by index from get_textboxes)."""
+        return header_footer_tools.set_textbox_text(filename, textbox_index, new_text)
+
+    @mcp.tool(
+        annotations=ToolAnnotations(
             title="Replace Block Below Header",
         ),
     )
